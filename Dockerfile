@@ -1,7 +1,11 @@
-FROM openjdk:8-jre-slim
+# Use official Maven image with JDK 17
+FROM maven:3.9.6-eclipse-temurin-17 as build
 
-VOLUME /tmp
+# Set working directory in the container
+WORKDIR /app
 
-ADD target/springboot-application-0.0.1-SNAPSHOT.jar springboot-application.jar
+# Copy source code to container
+COPY . .
 
-ENTRYPOINT ["java", "-jar", "/springboot-application.jar"]
+# Build the project and run tests (includes Sonar if configured in pom.xml)
+RUN mvn clean verify
