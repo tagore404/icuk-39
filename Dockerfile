@@ -1,12 +1,23 @@
-# Use official Maven image with JDK 17
-FROM maven:3.9.6-eclipse-temurin-17 as build
+# ---------- Stage 1: Build ----------
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
 
-# Set working directory in the container
 WORKDIR /app
 
-# Copy source code to container
-COPY . .
+# Copy pom and download dependencies first (for better caching)
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# Build the project and run tests (includes Sonar if configured in pom.xml)
-ENV MAVEN_OPTS="-Xmx512m"
-RUN mvn clean verify -DforkCount=1 -Dmaven.test.failure.ignore=true
+# Copy the full source and build the app
+COPY . .
+RUN mvn clean package -DskipTests
+
+# ---------- Stage 2: Runtime ----------
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+# Copy the built JAR from the builder stage
+COPY --from=builder /app/target/demo-workshop-2.0.2.jar app.jar
+
+# Run the Spring Boot app
+ENTRYPOINT ["java", "-jar", "app.jar"]
