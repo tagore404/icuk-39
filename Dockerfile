@@ -1,23 +1,18 @@
-# ---------- Stage 1: Build ----------
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+FROM python:3.9-slim
 
 WORKDIR /app
 
-# Copy pom and download dependencies first (for better caching)
-COPY pom.xml .
-RUN mvn dependency:go-offline
-
-# Copy the full source and build the app
+# Copy everything
 COPY . .
-RUN mvn clean package -DskipTests
 
-# ---------- Stage 2: Runtime ----------
-FROM eclipse-temurin:17-jre-alpine
+# Create virtual env (optional but recommended)
+RUN python3 -m venv venv && . venv/bin/activate
 
-WORKDIR /app
+# Install dependencies if needed (optional)
+# RUN pip install -r requirements.txt
 
-# Copy the built JAR from the builder stage
-COPY --from=builder /app/target/demo-workshop-2.0.2.jar app.jar
+# Add __init__.py if needed
+RUN touch tests/__init__.py
 
-# Run the Spring Boot app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run unit tests
+RUN python3 -m unittest discover -s ./tests -p '*_test.py'
